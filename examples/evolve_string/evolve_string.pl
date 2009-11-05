@@ -1,7 +1,7 @@
 % A simple demonstration program that demonstrates the evolution of a string
 % using the genetic algorithm framework.
 
-:- ['genetic']. % Load the genetic algorithm framework
+:- ['../../genetichr']. % Load the genetic algorithm framework
 
 :- ['levenshtein']. % We use Stephan Maiers edit distance implementation for fitness.
 
