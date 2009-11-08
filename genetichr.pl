@@ -4,8 +4,8 @@
 :- chr_constraint phase/1, generation/1, individual/4,  mutate/1, cross_over/2, uniq_id/1,
 	population_size/1, population_counter/1, collect_generation/1, survivors/2, insert_survivors/0,
 	mutation_rate/1, cross_over_rate/1, selection_mode/1,
-	fitness_threshold/1, generation_threshold/1, best_individual/1, average_fitness/1,
-	report_on_cycle/0.
+	fitness_threshold/1, generation_threshold/1, best_individual/1, total_fitness/1,
+	report_on_cycle/0, collect_statistics/0.
 
 % Assign unique identifier to a new child
 individual(new_id,Generation,Genome,Fitness), uniq_id(Id) <=>
@@ -17,14 +17,14 @@ individual(new_id,Generation,Genome,Fitness), uniq_id(Id) <=>
 % must return a number representing the fitness of the individual (higher = more fit).
 calculate_fitness @
 individual(Id,Generation,Genome,fitness_unknown) <=>
-	cb_calculate_fitness(Genome,Fitness),
+	cb_calculate_fitness(Genome,Fitness), !,
 	individual(Id,Generation,Genome,Fitness).
 
 % Crossover: Certain individuals are selected for cross over. The user is expected to implement
 % the cb_cross_over/3 rule, where the third argument must unify with 
 cross_over @
 generation(G), individual(Id1,_,Genome1,_), individual(Id2,_,Genome2,_) \ cross_over(Id1,Id2) <=>
-	cb_cross_over(Genome1,Genome2,ChildGenome1,ChildGenome2),
+	cb_cross_over(Genome1,Genome2,ChildGenome1,ChildGenome2), !,
 	NextGeneration is G + 1,
 	individual(new_id,NextGeneration,ChildGenome1,fitness_unknown),
 	individual(new_id,NextGeneration,ChildGenome2,fitness_unknown).
@@ -32,8 +32,8 @@ generation(G), individual(Id1,_,Genome1,_), individual(Id2,_,Genome2,_) \ cross_
 % Mutation: Inviduals are selected for mutation with a probability defined by the mutation rate
 % The user is expected to implement the cb_mutate/2 which mutates a genome. 
 mutate @
-mutate(Id), individual(Id,Generation,Genome,_) <=>
-	cb_mutate(Genome,MutatedGenome),
+individual(Id,Generation,Genome,_), mutate(Id) <=>
+	cb_mutate(Genome,MutatedGenome), !,
 	individual(Id,Generation,MutatedGenome,fitness_unknown).
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -50,7 +50,6 @@ generation(G) \ phase(initialization), population_counter(0) <=>
 % Create new individuals
 phase(initialization) \ population_counter(PopSize) <=>
 	cb_create_individual(Genome)
-	%write('created new individual: '), write(Genome),nl
 	|
 	NewPopSize is PopSize - 1,
 	individual(new_id,0,Genome,fitness_unknown),
@@ -62,30 +61,37 @@ phase(mutation), mutation_rate(Rate), individual(Id,_,_,_) ==>
 	random(Number),
 	Number =< Rate
 	|
-%	write('mutating '), write(Id), nl,
 	mutate(Id).
 
 phase(mutation) <=> write('  - cross over phase'),nl, phase(cross_over).
 
 generation(G), phase(cross_over), cross_over_rate(Rate), individual(Id1,G1,_,_), individual(Id2,G2,_,_) ==>
 	Id1 < Id2,
-	%write(G), write(' '), write(G1), write(' '), write(G2), nl,
 	G >= G1, G >= G2, % Do not cross-over children from this generation
 	random(Number),
 	Number =< Rate*Rate
 	|
-%	write('crossing over '), write(Id1), write(' and '), write(Id2),nl,
 	cross_over(Id1,Id2).
 	
 phase(cross_over) <=> write('  - selection phase'), nl, phase(selection).
 
+total_fitness(A), total_fitness(B) <=> C is A + B, total_fitness(C).
+
+best_individual(individual(_,_,_,Fitness1)) \ best_individual(individual(_,_,_,Fitness2)) <=> Fitness1 >= Fitness2 | true.
+
+collect_statistics, individual(Id,Generation,Genome,Fitness) ==>
+	total_fitness(Fitness),
+	best_individual(individual(Id,Generation,Genome,Fitness)).
+	
+	
 % Report best individual and average fitness each evolutionary cycle
-individual(Id,Generation,Genome,Fitness) \ report_on_cycle, best_individual(Id), average_fitness(MeanFit) <=>
-	write('Best individual: , '), write(individual(Id,Generation,Genome,Fitness)), nl,
+population_size(PopSize) \ collect_statistics, report_on_cycle, best_individual(individual(Id,Generation,Genome,Fitness)), total_fitness(TotalFit) <=>
+	MeanFit is TotalFit / PopSize, 
+	write('Best individual: '), write(individual(Id,Generation,Genome,Fitness)), nl,
 	write('Average fitness of generation: '), write(MeanFit), nl.
 
 % Termination because we found a good enough individual
-best_individual(Id), individual(Id,_,_,Fitness) \ generation(_), phase(evolution_cycle_done), fitness_threshold(Threshold) <=>
+best_individual(individual(_,_,_,Fitness)) \ generation(_), phase(evolution_cycle_done), fitness_threshold(Threshold) <=>
 	Fitness >= Threshold
 	|
 	write('Individual with fitness threshold '),write(Threshold),write(' found. Terminating.'),nl,
@@ -97,14 +103,13 @@ generation(Threshold), phase(evolution_cycle_done), generation_threshold(Thresho
 	report_on_cycle.
 
 % Evolutionary cycle done - proceeed to next cycle.	
-generation(X) \ phase(evolution_cycle_done) <=> 
+generation(X),  phase(evolution_cycle_done) <=> 
 	Y is X + 1,
 	write('Evolution cycle done. Starting on generation '),write(Y),nl,
-%	chr_show_store(''),
 	report_on_cycle,
-%	sleep(1), 	
 	generation(Y),
 	phase(mutation).
+
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Utilities used by multiple selection schemes
@@ -114,6 +119,8 @@ generation(X) \ phase(evolution_cycle_done) <=>
 collect_generation(L), individual(Id,Generation,Genome,Fitness) <=>
 	collect_generation([individual(Id,Generation,Genome,Fitness)|L]).
 	
+population_size(PopSize) \ survivors(N, List) <=> N > PopSize | survivors(PopSize,List).
+
 survivors(N1,List1), survivors(N2,List2) <=>
 	N3 is N1 + N2,
 	append(List1,List2,List3),
@@ -127,7 +134,9 @@ insert_survivors \ survivors(NumLeft,[Indvidual|Rest]) <=>
 	Indvidual,
 	survivors(NextNumLeft,Rest).
 
-insert_survivors, survivors(0, _) <=> phase(evolution_cycle_done).
+phase(selection), insert_survivors, survivors(0, _) <=> 
+	collect_statistics,
+	phase(evolution_cycle_done).
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Elitism selection:
@@ -138,46 +147,32 @@ phase(selection), selection_mode(elitism) ==> collect_generation([]).
 
 phase(selection), selection_mode(elitism), population_size(PopSize) \ collect_generation(Generation) <=>
 	fitness_sort(Generation,Sorted),
-	Sorted = [individual(BestId,_,_,_)|_],
-	sum_fitness(Sorted,TotalFitness),
-	length(Sorted, TotalIndividuals),
-	MeanFit is TotalFitness / TotalIndividuals,
-	average_fitness(MeanFit),
-	best_individual(BestId),
 	survivors(PopSize, Sorted),
 	insert_survivors.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Tournament selection 
-% A tournament is not guaranteed to have exactly tournament_size 
-% competitors, but it will on average. 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-:- chr_constraint tournaments/1, tournament/2, start_tournaments/0, tournament_size/1.
+:- chr_constraint tournament/2, start_tournaments/0, find_tournament_winners/0.
 
-phase(selection), selection_mode(tournament), tournament_size(TournamentSize) \ collect_generation(Generation) <=>
-	length(Generation,GenerationSize),
-	NumTournaments is GenerationSize / TournamentSize,
-	tournaments(NumTournaments).
+phase(selection), selection_mode(tournament) ==> start_tournaments.
 
-tournament(Id, Competitors1), tournament(Id,Competitors2) <=>
-	append(Competitors1, Competitors2, Competitors),
-	tournament(Id,Competitors).
+% Competition between two individuals in a particular tournament
+tournament(Id, individual(_,_,_,Fitness1)) \ tournament(Id,individual(_,_,_,Fitness2)) <=>	Fitness1 > Fitness2 | true.
 
 % Assign each individual to a random tournament
-tournaments(NumTournaments) \ individual(Id,Generation,Genome,Fitness) <=>
+start_tournaments, phase(selection), selection_mode(tournament), population_size(NumTournaments) \ individual(Id,Generation,Genome,Fitness) <=>
 	random(R),
 	AssignedTournament is round(R*NumTournaments),
-	tournament(AssignedTournament,[individual(Id,Generation,Genome,Fitness)]).
+	tournament(AssignedTournament,individual(Id,Generation,Genome,Fitness)).
 
-% When all individuals have been assigned a tournament, start the tournaments
-tournaments(_) <=> start_tournaments.
+% When all tournaments are done, find the winners.
+start_tournaments <=> find_tournament_winners.
 
-start_tournaments, tournament(_,Competitors) <=>
-	fitness_sort(Competitors,[Winner|_]),
-	survivors(1,[Winner]).
+find_tournament_winners \ tournament(_,Winner) <=> survivors(1,[Winner]).
 
-start_tournaments <=> insert_survivors.
+find_tournament_winners <=> insert_survivors.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % End of evolutionary cycle

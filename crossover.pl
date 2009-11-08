@@ -1,5 +1,6 @@
 % Implementation of some common crossover methods
-
+% Part of the GenetiCHR library
+% (c) Christian Theil Have, 2009.
 
 % One point cross over assumes equal length of genomes
 % A single crossover point (|) on both parents' organism strings is selected.
@@ -66,6 +67,82 @@ uniform_crossover([MGene|MRest],[FGene|FRest], [FGene|C1Rest],[MGene|C2Rest], Sw
 	uniform_crossover(MRest,FRest,C1Rest,C2Rest,SwapProbability).
 uniform_crossover([MGene|MRest],[FGene|FRest], [MGene|C1Rest],[FGene|C2Rest], SwapProbability) :-
 	uniform_crossover(MRest,FRest,C1Rest,C2Rest,SwapProbability).
+	
+% Binary tree cross-over: Swaps two random nodes in the two binary trees:
+% Parent1: [mul,2,[plus,a,b]]
+% Parent2: [plus,[mul,a,b],a]
+% Child1: T1 = [mul, 2, b],
+% Child2: T2 = [plus, [mul, a, [plus, a, b]], a]
+binary_tree_crossover(Tree1,Tree2,Tree3,Tree4) :-
+	count_nodes(Tree1,TreeNodeCount1),
+	count_nodes(Tree2,TreeNodeCount2),
+%	write('count nodes: '), write(TreeNodeCount1),write(' '), write(TreeNodeCount2),nl,
+	random(R1),
+	random(R2),
+	SelectNodeId1 is round(R1*(TreeNodeCount1-1)),
+	SelectNodeId2 is round(R2*(TreeNodeCount2-1)),
+%crossover	write('selected nodes: '), write(SelectNodeId1),write(' '), write(SelectNodeId2),nl,
+	extract_node(Tree1,SelectNodeId1,0,SelectNode1),
+	extract_node(Tree2,SelectNodeId2,0,SelectNode2),	
+	exchange_node(Tree1,SelectNode2,SelectNodeId1,0,Tree3),
+	exchange_node(Tree2,SelectNode1,SelectNodeId2,0,Tree4).
+	
+count_nodes(X,1) :- atom(X) ; number(X).
+count_nodes([_,Rest],Nodes) :-
+	count_nodes(Rest,RestNodes),
+	Nodes is 1 + RestNodes.
+count_nodes([_,Left,Right],Nodes) :-
+	count_nodes(Left,LeftNodes),
+	count_nodes(Right,RightNodes),
+	Nodes is 1 + LeftNodes + RightNodes.
+
+% exchange_node/5 replaces a node in a tree with some other other Tree (ReplacementNode)
+
+% Target node:
+exchange_node(_,ReplacementNode,TargetNodeId,TargetNodeId,ReplacementNode).
+
+% Unary nodes:
+exchange_node([Op,Rest],ReplacementNode,TargetNodeId,CurrentNodeId,[Op,RestReplace]) :-
+	TargetNodeId \= CurrentNodeId,
+	NextNodeId is CurrentNodeId + 1,	
+	exchange_node(Rest,ReplacementNode,TargetNodeId,NextNodeId,RestReplace).
+
+% Binary nodes:
+exchange_node([Op,Left,Right],ReplacementNode,TargetNodeId,CurrentNodeId,[Op,LeftReplace,RightReplace]) :-
+	TargetNodeId \= CurrentNodeId,
+	count_nodes(Left,LeftNodes),
+	LargestLeft is LeftNodes + CurrentNodeId,
+	((LargestLeft >= TargetNodeId) ->
+		NextNodeId is CurrentNodeId + 1,
+		exchange_node(Left,ReplacementNode,TargetNodeId,NextNodeId,LeftReplace),
+		RightReplace = Right
+		;
+		NextNodeId is LargestLeft + 1,
+		exchange_node(Right,ReplacementNode,TargetNodeId,NextNodeId,RightReplace),
+		LeftReplace = Left
+	).
+
+% Target node:	
+extract_node(X,TargetNodeId,TargetNodeId,X).
+
+% Unary nodes:
+extract_node([_,Rest],TargetNodeId,CurrentNodeId,TargetNode) :-
+	TargetNodeId \= CurrentNodeId,
+	NextNodeId is CurrentNodeId + 1,
+	extract_node(Rest,TargetNodeId,NextNodeId,TargetNode).
+
+% Binary nodes:
+extract_node([_,Left,Right],TargetNodeId,CurrentNodeId,TargetNode) :-
+	TargetNodeId \= CurrentNodeId,
+	count_nodes(Left,LeftNodes),
+	LargestLeft is LeftNodes + CurrentNodeId,
+	((LargestLeft >= TargetNodeId) ->
+		NextNodeId is CurrentNodeId + 1,
+		extract_node(Left,TargetNodeId,NextNodeId,TargetNode)
+		;
+		NextNodeId is LargestLeft + 1,
+		extract_node(Right,TargetNodeId,NextNodeId,TargetNode)
+	).
 
 % Fixme: Add Edge recombination operator
 

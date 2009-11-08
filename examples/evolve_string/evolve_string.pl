@@ -4,18 +4,17 @@
 :- ['../../genetichr']. % Load the genetic algorithm framework
 :- ['levenshtein']. % We use Stephan Maiers edit distance implementation for fitness.
 
-target_string("abcdef").
+target_string("cafe babe"). % Find the cafe babe
 %characters("abcdefghijklmnopqrstuvwxyz ").
-characters("abcdef").
-point_mutation_probability(0.1).
+characters("abcdef ").
 
 run_example :-
 	population_size(50), % The number of individuals in each generation
-	mutation_rate(0.5),
-	cross_over_rate(0.2),
+	mutation_rate(0.1),
+	crossover_rate(0.2),
 	fitness_threshold(0),
-	generation_threshold(100),
-	selection_mode(elitism), % Survisors are selected using elitism scheme
+	generation_threshold(1000),
+	selection_mode(tournament), % Survisors are selected using elitism scheme
 	phase(initialization). % Start the algorithm
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -29,7 +28,7 @@ cb_create_individual(Genome) :-
 	create_random_string(Genome),
 	write('cb_create_individual: '), atom_codes(A,Genome), write(A),nl.
 
-%cb_create_individual("netic algerock smogtir").
+%cb_create_individual("abba abba").
 	
 cb_calculate_fitness(Genome,Fitness) :-
 	target_string(Target),
@@ -42,7 +41,7 @@ cb_mutate(Genome, MutatedGenome) :-
 	characters(C),
 	multi_point_mutate(Genome,MutatedGenome,C,0.1).
 
-cb_cross_over(GenomeFather,GenomeMother,ChildGenome1,Child2Genome) :-
+cb_crossover(GenomeFather,GenomeMother,ChildGenome1,Child2Genome) :-
 	cut_and_splice(GenomeFather,GenomeMother,ChildGenome1,Child2Genome).
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
