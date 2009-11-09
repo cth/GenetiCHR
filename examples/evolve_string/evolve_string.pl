@@ -4,9 +4,8 @@
 :- ['../../genetichr']. % Load the genetic algorithm framework
 :- ['levenshtein']. % We use Stephan Maiers edit distance implementation for fitness.
 
-target_string("cafe babe"). % Find the cafe babe
-%characters("abcdefghijklmnopqrstuvwxyz ").
-characters("abcdef ").
+target_string("cafebabe"). % Find the cafe babe
+characters("abcdef").
 
 run_example :-
 	population_size(50), % The number of individuals in each generation
@@ -60,6 +59,5 @@ create_random_character(Char) :-
 	characters(Chars),
 	random(P),
 	length(Chars,NumChars),
-	CharIndexFloat is P * (NumChars-1),
-	round(CharIndexFloat, CharIndex),
+	CharIndex is round(P * (NumChars-1)),
 	nth0(CharIndex,Chars,Char).

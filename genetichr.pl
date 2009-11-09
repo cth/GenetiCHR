@@ -1,9 +1,9 @@
 :- [crossover].
 :- [mutation].
 :- use_module(library(chr)).
-:- chr_constraint phase/1, generation/1, individual/4,  mutate/1, cross_over/2, uniq_id/1,
+:- chr_constraint phase/1, generation/1, individual/4,  mutate/1, crossover/2, uniq_id/1,
 	population_size/1, population_counter/1, collect_generation/1, survivors/2, insert_survivors/0,
-	mutation_rate/1, cross_over_rate/1, selection_mode/1,
+	mutation_rate/1, crossover_rate/1, selection_mode/1,
 	fitness_threshold/1, generation_threshold/1, best_individual/1, total_fitness/1,
 	report_on_cycle/0, collect_statistics/0.
 
@@ -21,10 +21,10 @@ individual(Id,Generation,Genome,fitness_unknown) <=>
 	individual(Id,Generation,Genome,Fitness).
 
 % Crossover: Certain individuals are selected for cross over. The user is expected to implement
-% the cb_cross_over/3 rule, where the third argument must unify with 
-cross_over @
-generation(G), individual(Id1,_,Genome1,_), individual(Id2,_,Genome2,_) \ cross_over(Id1,Id2) <=>
-	cb_cross_over(Genome1,Genome2,ChildGenome1,ChildGenome2), !,
+% the cb_crossover/3 rule, where the third argument must unify with 
+crossover @
+generation(G), individual(Id1,_,Genome1,_), individual(Id2,_,Genome2,_) \ crossover(Id1,Id2) <=>
+	cb_crossover(Genome1,Genome2,ChildGenome1,ChildGenome2), !,
 	NextGeneration is G + 1,
 	individual(new_id,NextGeneration,ChildGenome1,fitness_unknown),
 	individual(new_id,NextGeneration,ChildGenome2,fitness_unknown).
@@ -63,17 +63,17 @@ phase(mutation), mutation_rate(Rate), individual(Id,_,_,_) ==>
 	|
 	mutate(Id).
 
-phase(mutation) <=> write('  - cross over phase'),nl, phase(cross_over).
+phase(mutation) <=> write('  - cross over phase'),nl, phase(crossover).
 
-generation(G), phase(cross_over), cross_over_rate(Rate), individual(Id1,G1,_,_), individual(Id2,G2,_,_) ==>
+generation(G), phase(crossover), crossover_rate(Rate), individual(Id1,G1,_,_), individual(Id2,G2,_,_) ==>
 	Id1 < Id2,
 	G >= G1, G >= G2, % Do not cross-over children from this generation
 	random(Number),
 	Number =< Rate*Rate
 	|
-	cross_over(Id1,Id2).
+	crossover(Id1,Id2).
 	
-phase(cross_over) <=> write('  - selection phase'), nl, phase(selection).
+phase(crossover) <=> write('  - selection phase'), nl, phase(selection).
 
 total_fitness(A), total_fitness(B) <=> C is A + B, total_fitness(C).
 
