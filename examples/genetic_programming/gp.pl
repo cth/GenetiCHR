@@ -38,9 +38,9 @@ target_function_examples([
 
 % Setup and run the xample
 run_example :-
-	population_size(20), % The number of individuals in each generation
+	population_size(200), % The number of individuals in each generation
 	mutation_rate(0.5),  % How many individuals are selected for mutation each generation
-	crossover_rate(0.7), % How many individuals are selected for crossover each generation
+	crossover_rate(0.9), % How many individuals are selected for crossover each generation
 	fitness_threshold(-0.1), % Stop when fitness of the program climbs to -0.1 (0 means perfect program)
 	generation_threshold(2000), % Alternatively, stop when we reach the 2000 generation
 	selection_mode(tournament), % Survisors are selected using tournament scheme

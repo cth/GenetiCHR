@@ -1,7 +1,7 @@
 :- [crossover].
 :- [mutation].
 :- use_module(library(chr)).
-:- chr_constraint phase/1, generation/1, individual/4,  mutate/1, crossover/2, uniq_id/1,
+:- chr_constraint phase/1, generation/1, individual/4,  mutate/1, crossover_list/1, sorted_crossover_list/1, sort_crossover_list/0, crossover/2, uniq_id/1,
 	population_size/1, population_counter/1, collect_generation/1, survivors/2, insert_survivors/0,
 	mutation_rate/1, crossover_rate/1, selection_mode/1,
 	fitness_threshold/1, generation_threshold/1, best_individual/1, total_fitness/1,
@@ -32,7 +32,7 @@ generation(G), individual(Id1,_,Genome1,_), individual(Id2,_,Genome2,_) \ crosso
 % Mutation: Inviduals are selected for mutation with a probability defined by the mutation rate
 % The user is expected to implement the cb_mutate/2 which mutates a genome. 
 mutate @
-individual(Id,Generation,Genome,_), mutate(Id) <=>
+individual(Id,Generation,Genome,_) \ mutate(Id) <=>
 	cb_mutate(Genome,MutatedGenome), !,
 	individual(Id,Generation,MutatedGenome,fitness_unknown).
 	
@@ -65,6 +65,7 @@ phase(mutation), mutation_rate(Rate), individual(Id,_,_,_) ==>
 
 phase(mutation) <=> write('  - cross over phase'),nl, phase(crossover).
 
+/*
 generation(G), phase(crossover), crossover_rate(Rate), individual(Id1,G1,_,_), individual(Id2,G2,_,_) ==>
 	Id1 < Id2,
 	G >= G1, G >= G2, % Do not cross-over children from this generation
@@ -72,7 +73,27 @@ generation(G), phase(crossover), crossover_rate(Rate), individual(Id1,G1,_,_), i
 	Number =< Rate*Rate
 	|
 	crossover(Id1,Id2).
-	
+*/
+
+crossover_list([MatingOrder,Id]), crossover_list(L) <=> crossover_list([[MatingOrder,Id]|L]).
+
+generation(G), phase(crossover), crossover_rate(Rate) ==> crossover_list([]).
+generation(G), phase(crossover), crossover_rate(Rate), individual(Id1,G1,_,_) ==>
+	G >= G1, % Do not cross-over children from this generation
+	random(Number),
+	random(MatingOrder),
+	Number =< Rate
+	|
+	crossover_list([MatingOrder,Id1]).
+
+generation(G), phase(crossover), crossover_rate(Rate) ==> sort_crossover_list.
+
+sort_crossover_list, crossover_list(MatingList) <=> length(MatingList,MLL), MLL > 1 | quicksort(MatingList,Sorted),sorted_crossover_list(Sorted).
+
+sorted_crossover_list([]) <=> true. 
+sorted_crossover_list([[_,_]]) <=> true. % If only one is selected, crossover not possible.
+sorted_crossover_list([[_,Id1],[_,Id2]|Rest]) <=> crossover(Id1,Id2), sorted_crossover_list(Rest).
+
 phase(crossover) <=> write('  - selection phase'), nl, phase(selection).
 
 total_fitness(A), total_fitness(B) <=> C is A + B, total_fitness(C).
@@ -146,7 +167,7 @@ phase(selection), insert_survivors, survivors(0, _) <=>
 phase(selection), selection_mode(elitism) ==> collect_generation([]).
 
 phase(selection), selection_mode(elitism), population_size(PopSize) \ collect_generation(Generation) <=>
-	fitness_sort(Generation,Sorted),
+	quicksort(Generation,Sorted),
 	survivors(PopSize, Sorted),
 	insert_survivors.
 
@@ -191,14 +212,31 @@ sum_fitness([],0).
 sum_fitness([individual(_,_,_,Fit)|Rest],SumFit) :-
 	sum_fitness(Rest, SumFitRest),
 	SumFit is Fit + SumFitRest.
+	
+	
+qs_compare(H,X,H) :-
+	H=individual(_,_,_,FitH),
+	X=individual(_,_,_,FitX),
+	FitX =< FitH.
+	
+qs_compare(H,X,X) :-
+	H=individual(_,_,_,FitH),
+	X=individual(_,_,_,FitX),
+	FitX > FitH.
+	
+qs_compare([R1,Id1],[R2,_],[R1,Id1]) :- R2 =< R1.
+qs_compare([R1,_],[R2,Id2],[R2,Id2]) :- R2 > R1.
 
 
-fitness_sort(List,Sorted):-q_sort(List,[],Sorted).
+quicksort(List,Sorted):-q_sort(List,[],Sorted).
 q_sort([],Acc,Acc).
 q_sort([H|T],Acc,Sorted):-
 	pivoting(H,T,L1,L2),
 	q_sort(L1,Acc,Sorted1),q_sort(L2,[H|Sorted1],Sorted).
 
 pivoting(_,[],[],[]).
-pivoting(H,[X|T],[X|L],G) :- H=individual(_,_,_,FitH), X=individual(_,_,_,FitX), FitX=<FitH, pivoting(H,T,L,G).
-pivoting(H,[X|T],L,[X|G]):- H=individual(_,_,_,FitH), X=individual(_,_,_,FitX), FitX>FitH, pivoting(H,T,L,G).
+%pivoting(H,[X|T],[X|L],G) :- H=individual(_,_,_,FitH), X=individual(_,_,_,FitX), FitX=<FitH, pivoting(H,T,L,G).
+%pivoting(H,[X|T],L,[X|G]):- H=individual(_,_,_,FitH), X=individual(_,_,_,FitX), FitX>FitH, pivoting(H,T,L,G).
+pivoting(H,[X|T],[X|L],G) :- qs_compare(H,X,H), pivoting(H,T,L,G).
+pivoting(H,[X|T],L,[X|G]):- qs_compare(H,X,X), pivoting(H,T,L,G).
+

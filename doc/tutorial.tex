@@ -18,6 +18,12 @@ and generation of the initial generation. The library contains a few common cros
 
 The library gives the user a number of choices with regard to parameters of the genetic algorithm such as generation size, fitness threshold and selection method (tournament or elitism).
 
+
+The framework is available for download at,
+\begin{verbatim}
+http://github.com/cth/GenetiCHR
+\end{verbatim}
+
 \section{Overview of the framework}
 
 The core of the framework is in the file \verb|genetichr.pl|. In the constraint a generation of individuals are maintained as \verb|individual/4| constraints. These constraints are iteratively refined
@@ -62,7 +68,7 @@ To implement an genetic algorithm using the framework, four callback rules needs
 
 \begin{itemize}
 \item \verb|cb_create_individual(-Genome)| : Called to create individuals in the initial generation. This will be called as many times as there are individuals in the population (indicated by \verb|population_size/1|, see section \ref{sec:initialization}). It is the job of the user to implement the rule such that \verb|Genome| is unified to a representation of an individual.
-\item \verb|cb_calculate_fitness(+Genome,-Fitness)| : Called it the selection phase to calculate the fitness of an individual. \verb|Fitness| must unify to a number (either float or integer). Higher numbers indicate better fitness. 
+\item \verb|cb_calculate_fitness(+Genome,-Fitness)| : Called in the selection phase to calculate the fitness of an individual. \verb|Fitness| must unify to a number (either float or integer). Higher numbers indicate better fitness. 
 \item \verb|cb_mutate(+Genome, -MutatedGenome)| : Called in the mutation phase when individuals are selected for mutation. \verb|MutatedGenome| must be unified to a mutated genome, but the mutation method is entirely up to the user. For a choice of common mutation rules, see section \ref{sec:mutation_rules}
 \item \verb|cb_crossover(+Parent1,+Parent2,-Child1,-Child2)| : Called to crossover two individuals. The process yields two children. The crossover method up to the user. Some commonly used crossover rules are available as a convenience, see section \ref{sec:crossover_rules}.
 \end{itemize}
@@ -82,15 +88,14 @@ One random element of the \verb|Genome| list is mutated to one of the elements o
 \noindent
 \verb|multi_point_mutate(-Genome,+MutatedGenome,|\\
 \verb|                   -Alphabet,-PointMutationProb)| \\
-Every element of the  \verb|Genome| list is mutated with a probability of \texttt{PointMutationProb}. 
+Any element of the  \verb|Genome| list is mutated with a probability of \texttt{PointMutationProb}. 
 The mutation outcomes are randomly selected from the \verb|Alphabet| list with uniform probability.
 
 \subsection{Crossover rules}
 \label{sec:crossover_rules}
 
 
-Some common crossover approached have been implemented as part of the framework. To use them, just call them from the user-defined \verb|cb_crossover_callback| function. 
-\footnote{Some of the contents of this section has been derived from wikipedia entry on crossover functions.}
+Some common crossover approached have been implemented as part of the framework. To use them, just call them from the user-defined \verb|cb_crossover_callback| function.\footnote{Some of the contents of this section has been derived from wikipedia entry on crossover functions.}
 
 \subsubsection{One-point crossover}
 
@@ -163,7 +168,7 @@ these subtrees are then swapped. See figure \ref{fig:binary_tree_crossover} for 
 \section{A simple example: Evolution of a string}
 
 This example is trivial and not a very interesting application of genetic algorithms. However, it illustrates the basic principles of developing
-a genetic algorithm using GenetiCHR. The example my be found in the GenetiCHR library in \verb|examples/evolve_string/|.
+a genetic algorithm using GenetiCHR. The example may be found in the GenetiCHR library in \verb|examples/evolve_string/|.
 
 The idea is to evolve a number of individual strings, represented as a list of character codes, into the string we are looking for. We define the 
 target string to be, 
@@ -185,7 +190,7 @@ Four callback rules for creation of individuals, mutation, crossover and fitness
 \begin{verbatim}
 cb_create_individual(Genome) :- create_random_string(Genome).
 \end{verbatim}
-This rule is called every time a new individual should be created for inclusion in the initial generation. \verb|population_size/1| determines how many times is will be invoked.
+This rule is called every time a new individual should be created for inclusion in the initial generation. \verb|population_size/1| determines how many times it will be invoked.
 It just calls \verb|create_random_string/1| which creates a random list of character codes from the defined alphabet,
 \begin{verbatim}
 create_random_string([]) :-  random(Prob),  Prob < 0.1, !.  % Stop
@@ -211,7 +216,7 @@ cb_mutate(Genome, MutatedGenome) :-
 After a call to \verb|cb_mutate|, \verb|MutatedGenome| will have mutations in 10 percent of all its bases on average. Note that bases are only 
 mutated to characters from the defined alphabet.
 
-\paragraph{Crossover} user the library \verb|cut_and_splice| rules, see section \ref{sec:cut_and_splice}.
+\paragraph{Crossover} uses the library \verb|cut_and_splice| rules, see section \ref{sec:cut_and_splice}.
 
 \begin{verbatim}
 cb_crossover(GenomeFather,GenomeMother,ChildGenome1,Child2Genome) :-
@@ -221,7 +226,7 @@ cb_crossover(GenomeFather,GenomeMother,ChildGenome1,Child2Genome) :-
 Note that we cannot easily use one-point crossover, which assumes that the parent genomes are of equal length, since in our initial generation individuals are generated
 with random lengths.
 
-\paragraph{Fitness calculation} is calculated as the negative Levenshtein/edit distance \footnote{The Levenshtein distance is defined as the minimal number of character substitutions, insertions and deletions needed to transform one string into an other.} to the target string,
+\paragraph{Fitness calculation} is calculated as the negative Levenshtein/edit distance\footnote{The Levenshtein distance is defined as the minimal number of character substitutions, insertions and deletions needed to transform one string into an other.} to the target string,
 
 \begin{verbatim}
 cb_calculate_fitness(Genome,Fitness) :-
@@ -234,7 +239,7 @@ cb_calculate_fitness(Genome,Fitness) :-
 
 \paragraph{Initialization}
 
-To initialize the algorithm we create a rule with adds all the necessary constraints as indicated in section \ref{sec:initialization}:
+To initialize the algorithm we create a rule which adds all the necessary constraints as indicated in section \ref{sec:initialization}:
 
 \begin{verbatim}
 run_example :-
