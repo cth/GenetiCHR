@@ -71,8 +71,12 @@ sort_simplify(Expr,SimpExpr) :-
 % Simple truths
 simplify([and,0,_],0).
 simplify([and,_,0],0).
+simplify([and,1,X],X).
+simplify([and,X,1],X).
 simplify([xor,A,A],0).
 simplify([or,A,A],1).
+simplify([or,1,_],1).
+simplify([or,_,1],1).
 simplify([not,1],0).
 simplify([not,0],1).
 

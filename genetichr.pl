@@ -112,11 +112,11 @@ population_size(PopSize) \ collect_statistics, report_on_cycle, best_individual(
 	write('Average fitness of generation: '), write(MeanFit), nl.
 
 % Termination because we found a good enough individual
-best_individual(individual(Generation,Unk,Genome,Fitness)) \ generation(_), phase(evolution_cycle_done), fitness_threshold(Threshold) <=>
+best_individual(individual(IndvId,Generation,Genome,Fitness)) \ generation(_), phase(evolution_cycle_done), fitness_threshold(Threshold) <=>
 	Fitness >= Threshold
 	|
 	write('Individual with fitness threshold '),write(Threshold),write(' found. Terminating.'),nl,
-	solution(Generation,Unk,Genome,Fitness),
+	solution(IndvId,Generation,Genome,Fitness),
 	report_on_cycle.
 
 % Termination because with reached the maximal generation threshold

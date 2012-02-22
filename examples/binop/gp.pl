@@ -10,31 +10,39 @@ symbols([a,b]).
 operator(binary, and).
 operator(binary, or).
 operator(binary, xor).
-operator(unary, bnot).
+operator(unary, 	not).
 
 operator_mutation_probability(0.1).
 symbol_mutation_probability(0.1).
 
 % Limiting the size of the program may be an advantage (we dont want to consider huge programs)
-max_program_size(16).
+max_program_size(10).
 
-% We use these example to evaluate a function learned by the algorithm
+/*
+We use these example to evaluate a function learned by the algorithm.
+Descartes Truth Table:
+*/
 target_function_examples([
-	[1, 1, 1],
-	[1, 0, 1],
-	[0, 1, 1],
-	[1, 1, 1]
+	[1, 1, 1], % I think AND I am = TRUE
+	[1, 0, 0], % I think AND I am NOT = FALSE 
+	[0, 1, 1], % I think NOT AND I am = TRUE
+	[1, 1, 1]  % I think AND I am = TRUE 
 ]).
 
 % Setup and run the xample
 run_example :-
-	population_size(10), % The number of individuals in each generation
+	population_size(20), % The number of individuals in each generation
 	mutation_rate(0.5),  % How many individuals are selected for mutation each generation
 	crossover_rate(0.9), % How many individuals are selected for crossover each generation
 	fitness_threshold(0), % Stop when fitness of the program climbs to -0.1 (0 means perfect program)
 	generation_threshold(2000), % Alternatively, stop when we reach the 2000 generation
 	selection_mode(tournament), % Survisors are selected using tournament scheme
-	phase(initialization). % Start the algorithm
+	phase(initialization), !,% Start the algorithm
+	get_solution(_IndvId,_Generation,Genome,0),!,
+	sort_expr(Genome,SortGenome),
+	simplify(SortGenome,Simplified),
+	write('Solution: '), write(Genome),nl,
+	write('Reduced solution: '), write(Simplified),nl.	
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Implementation of callback rules
