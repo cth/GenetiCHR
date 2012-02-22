@@ -5,7 +5,7 @@
 	population_size/1, population_counter/1, collect_generation/1, survivors/2, insert_survivors/0,
 	mutation_rate/1, crossover_rate/1, selection_mode/1,
 	fitness_threshold/1, generation_threshold/1, best_individual/1, total_fitness/1,
-	report_on_cycle/0, collect_statistics/0.
+	report_on_cycle/0, collect_statistics/0, solution/4.
 
 % Assign unique identifier to a new child
 individual(new_id,Generation,Genome,Fitness), uniq_id(Id) <=>
@@ -112,10 +112,11 @@ population_size(PopSize) \ collect_statistics, report_on_cycle, best_individual(
 	write('Average fitness of generation: '), write(MeanFit), nl.
 
 % Termination because we found a good enough individual
-best_individual(individual(_,_,_,Fitness)) \ generation(_), phase(evolution_cycle_done), fitness_threshold(Threshold) <=>
+best_individual(individual(Generation,Unk,Genome,Fitness)) \ generation(_), phase(evolution_cycle_done), fitness_threshold(Threshold) <=>
 	Fitness >= Threshold
 	|
 	write('Individual with fitness threshold '),write(Threshold),write(' found. Terminating.'),nl,
+	solution(Generation,Unk,Genome,Fitness),
 	report_on_cycle.
 
 % Termination because with reached the maximal generation threshold
@@ -130,6 +131,9 @@ generation(X),  phase(evolution_cycle_done) <=>
 	report_on_cycle,
 	generation(Y),
 	phase(mutation).
+	
+get_solution(Generation,Hmm,Genome,Fitness) :-
+	find_chr_constraint(solution(Generation,Hmm,Genome,Fitness)).
 
 	
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
