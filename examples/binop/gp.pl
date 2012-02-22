@@ -82,7 +82,6 @@ cb_calculate_fitness(Program,Fitness) :-
 	
 % Programs must use both variables
 
-
 % Otherwise, fitness is calculated as the total error 
 % on all the examples
 cb_calculate_fitness(Program,Fitness) :-
